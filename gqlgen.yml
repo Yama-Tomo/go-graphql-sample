@@ -5,15 +5,19 @@ exec:
   filename: graph/generated/generated.go
   package: generated
 
-model:
-  filename: graph/model/models_gen.go
-  package: model
+# このファイルが生成される条件が不明なので一旦残しておく
+#model:
+#  filename: graph/model/models_gen.go
+#  package: model
 
 models:
-  User:
-    fields:
-      pets:
-        resolver: true
+# id の引数を int にする
+  ID:
+    model:
+      - github.com/99designs/gqlgen/graphql.IntID
+
+autobind:
+  - sample/ent
 
 resolver:
   layout: follow-schema

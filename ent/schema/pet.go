@@ -4,6 +4,7 @@ import (
 	"github.com/facebook/ent"
 	"github.com/facebook/ent/schema/edge"
 	"github.com/facebook/ent/schema/field"
+	"github.com/facebookincubator/ent-contrib/entgql"
 	"time"
 )
 
@@ -20,6 +21,9 @@ func (Pet) Fields() []ent.Field {
 
 func (Pet) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.From("owner", User.Type).Ref("pets").Unique(),
+		edge.From("owner", User.Type).Ref("pets").
+			// graphql のフィールド名と同じにする．そうすると collection.go で N+1 対策のコードが生成される
+			Annotations(entgql.MapsTo("owner")).
+			Unique(),
 	}
 }
