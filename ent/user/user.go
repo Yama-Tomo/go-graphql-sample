@@ -16,8 +16,18 @@ const (
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "created_at"
 
+	// EdgePets holds the string denoting the pets edge name in mutations.
+	EdgePets = "pets"
+
 	// Table holds the table name of the user in the database.
 	Table = "users"
+	// PetsTable is the table the holds the pets relation/edge.
+	PetsTable = "pets"
+	// PetsInverseTable is the table name for the Pet entity.
+	// It exists in this package in order to avoid circular dependency with the "pet" package.
+	PetsInverseTable = "pets"
+	// PetsColumn is the table column denoting the pets relation/edge.
+	PetsColumn = "user_pets"
 )
 
 // Columns holds all SQL columns for user fields.

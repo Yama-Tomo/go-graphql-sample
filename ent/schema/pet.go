@@ -7,22 +7,19 @@ import (
 	"time"
 )
 
-// User holds the schema definition for the User entity.
-type User struct {
+type Pet struct {
 	ent.Schema
 }
 
-// Fields of the User.
-func (User) Fields() []ent.Field {
+func (Pet) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("name"),
 		field.Time("created_at").Default(time.Now),
 	}
 }
 
-// Edges of the User.
-func (User) Edges() []ent.Edge {
+func (Pet) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.To("pets", Pet.Type),
+		edge.From("owner", User.Type).Ref("pets").Unique(),
 	}
 }
