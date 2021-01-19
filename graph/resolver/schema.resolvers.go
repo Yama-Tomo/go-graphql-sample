@@ -34,6 +34,21 @@ func (r *queryResolver) User(ctx context.Context, id *string) (*model.User, erro
 	return user, nil
 }
 
+func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
+	rows, err := r.DB.User.Query().All(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var users []*model.User
+	for _, row := range rows {
+		strId := strconv.Itoa(row.ID)
+		users = append(users, &model.User{ID: &strId, Name: &row.Name})
+	}
+
+	return users, nil
+}
+
 func (r *queryResolver) Pet(ctx context.Context, id *string) (*model.Pet, error) {
 	pet := &model.Pet{ID: nil, Name: nil}
 	if id == nil {
