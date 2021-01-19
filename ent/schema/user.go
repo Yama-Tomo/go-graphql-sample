@@ -4,6 +4,9 @@ import (
 	"github.com/facebook/ent"
 	"github.com/facebook/ent/schema/edge"
 	"github.com/facebook/ent/schema/field"
+	"github.com/facebookincubator/ent-contrib/entgql"
+
+	//"github.com/facebookincubator/ent-contrib/entgql"
 	"time"
 )
 
@@ -23,6 +26,6 @@ func (User) Fields() []ent.Field {
 // Edges of the User.
 func (User) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.To("pets", Pet.Type),
+		edge.To("pets", Pet.Type).Annotations(entgql.Bind()),
 	}
 }
