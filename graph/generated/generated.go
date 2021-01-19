@@ -36,6 +36,7 @@ type Config struct {
 
 type ResolverRoot interface {
 	Query() QueryResolver
+	User() UserResolver
 }
 
 type DirectiveRoot struct {
@@ -55,12 +56,16 @@ type ComplexityRoot struct {
 	User struct {
 		ID   func(childComplexity int) int
 		Name func(childComplexity int) int
+		Pets func(childComplexity int) int
 	}
 }
 
 type QueryResolver interface {
 	User(ctx context.Context, id *string) (*model.User, error)
 	Pet(ctx context.Context, id *string) (*model.Pet, error)
+}
+type UserResolver interface {
+	Pets(ctx context.Context, obj *model.User) ([]*model.Pet, error)
 }
 
 type executableSchema struct {
@@ -130,6 +135,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.User.Name(childComplexity), true
 
+	case "User.pets":
+		if e.complexity.User.Pets == nil {
+			break
+		}
+
+		return e.complexity.User.Pets(childComplexity), true
+
 	}
 	return 0, false
 }
@@ -188,12 +200,14 @@ var sources = []*ast.Source{
 type User {
   id: ID
   name: String
+  pets: [Pet]!
 }
 
 type Pet {
   id: ID
   name: String
-}`, BuiltIn: false},
+}
+`, BuiltIn: false},
 }
 var parsedSchema = gqlparser.MustLoadSchema(sources...)
 
@@ -565,6 +579,41 @@ func (ec *executionContext) _User_name(ctx context.Context, field graphql.Collec
 	res := resTmp.(*string)
 	fc.Result = res
 	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _User_pets(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "User",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.User().Pets(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Pet)
+	fc.Result = res
+	return ec.marshalNPet2ᚕᚖsampleᚋgraphᚋmodelᚐPet(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) ___Directive_name(ctx context.Context, field graphql.CollectedField, obj *introspection.Directive) (ret graphql.Marshaler) {
@@ -1761,6 +1810,20 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 			out.Values[i] = ec._User_id(ctx, field, obj)
 		case "name":
 			out.Values[i] = ec._User_name(ctx, field, obj)
+		case "pets":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._User_pets(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -2034,6 +2097,43 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 
 func (ec *executionContext) marshalNPet2sampleᚋgraphᚋmodelᚐPet(ctx context.Context, sel ast.SelectionSet, v model.Pet) graphql.Marshaler {
 	return ec._Pet(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNPet2ᚕᚖsampleᚋgraphᚋmodelᚐPet(ctx context.Context, sel ast.SelectionSet, v []*model.Pet) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalOPet2ᚖsampleᚋgraphᚋmodelᚐPet(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
 }
 
 func (ec *executionContext) marshalNPet2ᚖsampleᚋgraphᚋmodelᚐPet(ctx context.Context, sel ast.SelectionSet, v *model.Pet) graphql.Marshaler {
@@ -2341,6 +2441,13 @@ func (ec *executionContext) marshalOID2ᚖstring(ctx context.Context, sel ast.Se
 		return graphql.Null
 	}
 	return graphql.MarshalID(*v)
+}
+
+func (ec *executionContext) marshalOPet2ᚖsampleᚋgraphᚋmodelᚐPet(ctx context.Context, sel ast.SelectionSet, v *model.Pet) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._Pet(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOString2string(ctx context.Context, v interface{}) (string, error) {

@@ -10,4 +10,5 @@ type Pet struct {
 type User struct {
 	ID   *string `json:"id"`
 	Name *string `json:"name"`
+	Pets []*Pet  `json:"pets"`
 }
