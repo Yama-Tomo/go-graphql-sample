@@ -10,6 +10,11 @@ exec:
 #  filename: graph/model/models_gen.go
 #  package: model
 
+models:
+# id の引数を int にする
+  ID:
+    model:
+      - github.com/99designs/gqlgen/graphql.IntID
 
 autobind:
   - sample/ent

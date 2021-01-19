@@ -8,37 +8,26 @@ import (
 	"errors"
 	"sample/ent"
 	"sample/graph/generated"
-	"strconv"
 )
 
-func (r *queryResolver) User(ctx context.Context, id *string) (*ent.User, error) {
+func (r *queryResolver) User(ctx context.Context, id *int) (*ent.User, error) {
 	if id == nil {
 		return nil, errors.New("required id")
 	}
 
-	idInt, err := strconv.Atoi(*id)
-	if err != nil {
-		return nil, err
-	}
-
-	return r.DB.User.Get(ctx, idInt)
+	return r.DB.User.Get(ctx, *id)
 }
 
 func (r *queryResolver) Users(ctx context.Context) ([]*ent.User, error) {
 	return r.DB.User.Query().CollectFields(ctx).All(ctx)
 }
 
-func (r *queryResolver) Pet(ctx context.Context, id *string) (*ent.Pet, error) {
+func (r *queryResolver) Pet(ctx context.Context, id *int) (*ent.Pet, error) {
 	if id == nil {
 		return nil, errors.New("required id")
 	}
 
-	idInt, err := strconv.Atoi(*id)
-	if err != nil {
-		return nil, err
-	}
-
-	return r.DB.Pet.Get(ctx, idInt)
+	return r.DB.Pet.Get(ctx, *id)
 }
 
 // Query returns generated.QueryResolver implementation.

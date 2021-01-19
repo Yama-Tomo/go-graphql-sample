@@ -48,8 +48,8 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		Pet   func(childComplexity int, id *string) int
-		User  func(childComplexity int, id *string) int
+		Pet   func(childComplexity int, id *int) int
+		User  func(childComplexity int, id *int) int
 		Users func(childComplexity int) int
 	}
 
@@ -61,9 +61,9 @@ type ComplexityRoot struct {
 }
 
 type QueryResolver interface {
-	User(ctx context.Context, id *string) (*ent.User, error)
+	User(ctx context.Context, id *int) (*ent.User, error)
 	Users(ctx context.Context) ([]*ent.User, error)
-	Pet(ctx context.Context, id *string) (*ent.Pet, error)
+	Pet(ctx context.Context, id *int) (*ent.Pet, error)
 }
 
 type executableSchema struct {
@@ -105,7 +105,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.Pet(childComplexity, args["id"].(*string)), true
+		return e.complexity.Query.Pet(childComplexity, args["id"].(*int)), true
 
 	case "Query.user":
 		if e.complexity.Query.User == nil {
@@ -117,7 +117,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.User(childComplexity, args["id"].(*string)), true
+		return e.complexity.Query.User(childComplexity, args["id"].(*int)), true
 
 	case "Query.users":
 		if e.complexity.Query.Users == nil {
@@ -239,10 +239,10 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 func (ec *executionContext) field_Query_pet_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 *string
+	var arg0 *int
 	if tmp, ok := rawArgs["id"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
-		arg0, err = ec.unmarshalOID2ᚖstring(ctx, tmp)
+		arg0, err = ec.unmarshalOID2ᚖint(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -254,10 +254,10 @@ func (ec *executionContext) field_Query_pet_args(ctx context.Context, rawArgs ma
 func (ec *executionContext) field_Query_user_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 *string
+	var arg0 *int
 	if tmp, ok := rawArgs["id"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
-		arg0, err = ec.unmarshalOID2ᚖstring(ctx, tmp)
+		arg0, err = ec.unmarshalOID2ᚖint(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -393,7 +393,7 @@ func (ec *executionContext) _Query_user(ctx context.Context, field graphql.Colle
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().User(rctx, args["id"].(*string))
+		return ec.resolvers.Query().User(rctx, args["id"].(*int))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -470,7 +470,7 @@ func (ec *executionContext) _Query_pet(ctx context.Context, field graphql.Collec
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Pet(rctx, args["id"].(*string))
+		return ec.resolvers.Query().Pet(rctx, args["id"].(*int))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2529,19 +2529,19 @@ func (ec *executionContext) marshalOID2int(ctx context.Context, sel ast.Selectio
 	return graphql.MarshalIntID(v)
 }
 
-func (ec *executionContext) unmarshalOID2ᚖstring(ctx context.Context, v interface{}) (*string, error) {
+func (ec *executionContext) unmarshalOID2ᚖint(ctx context.Context, v interface{}) (*int, error) {
 	if v == nil {
 		return nil, nil
 	}
-	res, err := graphql.UnmarshalID(v)
+	res, err := graphql.UnmarshalIntID(v)
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalOID2ᚖstring(ctx context.Context, sel ast.SelectionSet, v *string) graphql.Marshaler {
+func (ec *executionContext) marshalOID2ᚖint(ctx context.Context, sel ast.SelectionSet, v *int) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
-	return graphql.MarshalID(*v)
+	return graphql.MarshalIntID(*v)
 }
 
 func (ec *executionContext) marshalOPet2ᚖsampleᚋentᚐPet(ctx context.Context, sel ast.SelectionSet, v *ent.Pet) graphql.Marshaler {
