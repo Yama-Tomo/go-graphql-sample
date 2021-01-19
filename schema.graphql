@@ -2,6 +2,7 @@ type Query {
   user(id: ID): User!
   users: [User]!
   pet(id: ID): Pet!
+  pets: [Pet]!
 }
 
 type User {
@@ -13,4 +14,5 @@ type User {
 type Pet {
   id: ID
   name: String
+  owner: User
 }

@@ -30,6 +30,10 @@ func (r *queryResolver) Pet(ctx context.Context, id *int) (*ent.Pet, error) {
 	return r.DB.Pet.Get(ctx, *id)
 }
 
+func (r *queryResolver) Pets(ctx context.Context) ([]*ent.Pet, error) {
+	return r.DB.Pet.Query().CollectFields(ctx).All(ctx)
+}
+
 // Query returns generated.QueryResolver implementation.
 func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 

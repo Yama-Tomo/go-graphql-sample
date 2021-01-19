@@ -43,12 +43,14 @@ type DirectiveRoot struct {
 
 type ComplexityRoot struct {
 	Pet struct {
-		ID   func(childComplexity int) int
-		Name func(childComplexity int) int
+		ID    func(childComplexity int) int
+		Name  func(childComplexity int) int
+		Owner func(childComplexity int) int
 	}
 
 	Query struct {
 		Pet   func(childComplexity int, id *int) int
+		Pets  func(childComplexity int) int
 		User  func(childComplexity int, id *int) int
 		Users func(childComplexity int) int
 	}
@@ -64,6 +66,7 @@ type QueryResolver interface {
 	User(ctx context.Context, id *int) (*ent.User, error)
 	Users(ctx context.Context) ([]*ent.User, error)
 	Pet(ctx context.Context, id *int) (*ent.Pet, error)
+	Pets(ctx context.Context) ([]*ent.Pet, error)
 }
 
 type executableSchema struct {
@@ -95,6 +98,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Pet.Name(childComplexity), true
 
+	case "Pet.owner":
+		if e.complexity.Pet.Owner == nil {
+			break
+		}
+
+		return e.complexity.Pet.Owner(childComplexity), true
+
 	case "Query.pet":
 		if e.complexity.Query.Pet == nil {
 			break
@@ -106,6 +116,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.Pet(childComplexity, args["id"].(*int)), true
+
+	case "Query.pets":
+		if e.complexity.Query.Pets == nil {
+			break
+		}
+
+		return e.complexity.Query.Pets(childComplexity), true
 
 	case "Query.user":
 		if e.complexity.Query.User == nil {
@@ -201,6 +218,7 @@ var sources = []*ast.Source{
   user(id: ID): User!
   users: [User]!
   pet(id: ID): Pet!
+  pets: [Pet]!
 }
 
 type User {
@@ -212,6 +230,7 @@ type User {
 type Pet {
   id: ID
   name: String
+  owner: User
 }
 `, BuiltIn: false},
 }
@@ -368,6 +387,38 @@ func (ec *executionContext) _Pet_name(ctx context.Context, field graphql.Collect
 	return ec.marshalOString2string(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Pet_owner(ctx context.Context, field graphql.CollectedField, obj *ent.Pet) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Pet",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Owner(ctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*ent.User)
+	fc.Result = res
+	return ec.marshalOUser2ᚖsampleᚋentᚐUser(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Query_user(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -485,6 +536,41 @@ func (ec *executionContext) _Query_pet(ctx context.Context, field graphql.Collec
 	res := resTmp.(*ent.Pet)
 	fc.Result = res
 	return ec.marshalNPet2ᚖsampleᚋentᚐPet(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_pets(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().Pets(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*ent.Pet)
+	fc.Result = res
+	return ec.marshalNPet2ᚕᚖsampleᚋentᚐPet(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -1767,6 +1853,17 @@ func (ec *executionContext) _Pet(ctx context.Context, sel ast.SelectionSet, obj 
 			out.Values[i] = ec._Pet_id(ctx, field, obj)
 		case "name":
 			out.Values[i] = ec._Pet_name(ctx, field, obj)
+		case "owner":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Pet_owner(ctx, field, obj)
+				return res
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -1830,6 +1927,20 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_pet(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "pets":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_pets(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
