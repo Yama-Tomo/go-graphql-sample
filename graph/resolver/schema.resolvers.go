@@ -8,14 +8,30 @@ import (
 	"fmt"
 	"sample/graph/generated"
 	"sample/graph/model"
+	"strconv"
 )
 
 func (r *queryResolver) User(ctx context.Context, id *string) (*model.User, error) {
-	name := "Bob"
-	return &model.User{
-		ID:   id,
-		Name: &name,
-	}, nil
+	user := &model.User{ID: nil, Name: nil}
+	if id == nil {
+		return user, nil
+	}
+
+	intId, err := strconv.Atoi(*id)
+	if err != nil {
+		return nil, err
+	}
+
+	row, err := r.DB.User.Get(ctx, intId)
+	if err != nil {
+		return nil, err
+	}
+
+	strId := strconv.Itoa(row.ID)
+	user.ID = &strId
+	user.Name = &row.Name
+
+	return user, nil
 }
 
 func (r *queryResolver) Pet(ctx context.Context, id *string) (*model.Pet, error) {
