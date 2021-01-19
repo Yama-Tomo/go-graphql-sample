@@ -5,15 +5,14 @@ exec:
   filename: graph/generated/generated.go
   package: generated
 
-model:
-  filename: graph/model/models_gen.go
-  package: model
+# このファイルが生成される条件が不明なので一旦残しておく
+#model:
+#  filename: graph/model/models_gen.go
+#  package: model
 
-models:
-  User:
-    fields:
-      pets:
-        resolver: true
+
+autobind:
+  - sample/ent
 
 resolver:
   layout: follow-schema

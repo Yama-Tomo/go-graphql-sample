@@ -5,98 +5,43 @@ package resolver
 
 import (
 	"context"
-	"sample/ent/user"
+	"errors"
+	"sample/ent"
 	"sample/graph/generated"
-	"sample/graph/model"
 	"strconv"
 )
 
-func (r *queryResolver) User(ctx context.Context, id *string) (*model.User, error) {
-	user := &model.User{ID: nil, Name: nil}
+func (r *queryResolver) User(ctx context.Context, id *string) (*ent.User, error) {
 	if id == nil {
-		return user, nil
+		return nil, errors.New("required id")
 	}
 
-	intId, err := strconv.Atoi(*id)
+	idInt, err := strconv.Atoi(*id)
 	if err != nil {
 		return nil, err
 	}
 
-	row, err := r.DB.User.Get(ctx, intId)
-	if err != nil {
-		return nil, err
-	}
-
-	strId := strconv.Itoa(row.ID)
-	user.ID = &strId
-	user.Name = &row.Name
-
-	return user, nil
+	return r.DB.User.Get(ctx, idInt)
 }
 
-func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
-	rows, err := r.DB.User.Query().All(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	var users []*model.User
-	for _, row := range rows {
-		strId := strconv.Itoa(row.ID)
-		users = append(users, &model.User{ID: &strId, Name: &row.Name})
-	}
-
-	return users, nil
+func (r *queryResolver) Users(ctx context.Context) ([]*ent.User, error) {
+	return r.DB.User.Query().CollectFields(ctx).All(ctx)
 }
 
-func (r *queryResolver) Pet(ctx context.Context, id *string) (*model.Pet, error) {
-	pet := &model.Pet{ID: nil, Name: nil}
+func (r *queryResolver) Pet(ctx context.Context, id *string) (*ent.Pet, error) {
 	if id == nil {
-		return pet, nil
+		return nil, errors.New("required id")
 	}
 
-	intId, err := strconv.Atoi(*id)
+	idInt, err := strconv.Atoi(*id)
 	if err != nil {
 		return nil, err
 	}
 
-	row, err := r.DB.Pet.Get(ctx, intId)
-	if err != nil {
-		return nil, err
-	}
-
-	strId := strconv.Itoa(row.ID)
-	pet.ID = &strId
-	pet.Name = &row.Name
-
-	return pet, nil
-}
-
-func (r *userResolver) Pets(ctx context.Context, obj *model.User) ([]*model.Pet, error) {
-	userId, err := strconv.Atoi(*obj.ID)
-	if err != nil {
-		return nil, err
-	}
-
-	rows, err := r.DB.User.Query().Where(user.ID(userId)).QueryPets().All(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	var pets []*model.Pet
-	for _, pet := range rows {
-		strId := strconv.Itoa(pet.ID)
-		pets = append(pets, &model.Pet{ID: &strId, Name: &pet.Name})
-	}
-
-	return pets, nil
+	return r.DB.Pet.Get(ctx, idInt)
 }
 
 // Query returns generated.QueryResolver implementation.
 func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
-// User returns generated.UserResolver implementation.
-func (r *Resolver) User() generated.UserResolver { return &userResolver{r} }
-
 type queryResolver struct{ *Resolver }
-type userResolver struct{ *Resolver }
