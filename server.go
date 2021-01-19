@@ -66,6 +66,6 @@ func main() {
 func loadEnv() {
 	err := godotenv.Load()
 	if err != nil {
-		panic(err)
+		log.Fatalf("failed load `.env`: [%s]", err)
 	}
 }
