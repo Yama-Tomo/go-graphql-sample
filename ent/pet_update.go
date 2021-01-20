@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"sample/ent/pet"
+	"sample/ent/petattribute"
 	"sample/ent/predicate"
 	"sample/ent/user"
 	"time"
@@ -48,6 +49,21 @@ func (pu *PetUpdate) SetNillableCreatedAt(t *time.Time) *PetUpdate {
 	return pu
 }
 
+// AddAttributeIDs adds the "attributes" edge to the PetAttribute entity by IDs.
+func (pu *PetUpdate) AddAttributeIDs(ids ...int) *PetUpdate {
+	pu.mutation.AddAttributeIDs(ids...)
+	return pu
+}
+
+// AddAttributes adds the "attributes" edges to the PetAttribute entity.
+func (pu *PetUpdate) AddAttributes(p ...*PetAttribute) *PetUpdate {
+	ids := make([]int, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
+	}
+	return pu.AddAttributeIDs(ids...)
+}
+
 // SetOwnerID sets the "owner" edge to the User entity by ID.
 func (pu *PetUpdate) SetOwnerID(id int) *PetUpdate {
 	pu.mutation.SetOwnerID(id)
@@ -70,6 +86,27 @@ func (pu *PetUpdate) SetOwner(u *User) *PetUpdate {
 // Mutation returns the PetMutation object of the builder.
 func (pu *PetUpdate) Mutation() *PetMutation {
 	return pu.mutation
+}
+
+// ClearAttributes clears all "attributes" edges to the PetAttribute entity.
+func (pu *PetUpdate) ClearAttributes() *PetUpdate {
+	pu.mutation.ClearAttributes()
+	return pu
+}
+
+// RemoveAttributeIDs removes the "attributes" edge to PetAttribute entities by IDs.
+func (pu *PetUpdate) RemoveAttributeIDs(ids ...int) *PetUpdate {
+	pu.mutation.RemoveAttributeIDs(ids...)
+	return pu
+}
+
+// RemoveAttributes removes "attributes" edges to PetAttribute entities.
+func (pu *PetUpdate) RemoveAttributes(p ...*PetAttribute) *PetUpdate {
+	ids := make([]int, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
+	}
+	return pu.RemoveAttributeIDs(ids...)
 }
 
 // ClearOwner clears the "owner" edge to the User entity.
@@ -161,6 +198,60 @@ func (pu *PetUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Column: pet.FieldCreatedAt,
 		})
 	}
+	if pu.mutation.AttributesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   pet.AttributesTable,
+			Columns: []string{pet.AttributesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: petattribute.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := pu.mutation.RemovedAttributesIDs(); len(nodes) > 0 && !pu.mutation.AttributesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   pet.AttributesTable,
+			Columns: []string{pet.AttributesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: petattribute.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := pu.mutation.AttributesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   pet.AttributesTable,
+			Columns: []string{pet.AttributesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: petattribute.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if pu.mutation.OwnerCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
@@ -234,6 +325,21 @@ func (puo *PetUpdateOne) SetNillableCreatedAt(t *time.Time) *PetUpdateOne {
 	return puo
 }
 
+// AddAttributeIDs adds the "attributes" edge to the PetAttribute entity by IDs.
+func (puo *PetUpdateOne) AddAttributeIDs(ids ...int) *PetUpdateOne {
+	puo.mutation.AddAttributeIDs(ids...)
+	return puo
+}
+
+// AddAttributes adds the "attributes" edges to the PetAttribute entity.
+func (puo *PetUpdateOne) AddAttributes(p ...*PetAttribute) *PetUpdateOne {
+	ids := make([]int, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
+	}
+	return puo.AddAttributeIDs(ids...)
+}
+
 // SetOwnerID sets the "owner" edge to the User entity by ID.
 func (puo *PetUpdateOne) SetOwnerID(id int) *PetUpdateOne {
 	puo.mutation.SetOwnerID(id)
@@ -256,6 +362,27 @@ func (puo *PetUpdateOne) SetOwner(u *User) *PetUpdateOne {
 // Mutation returns the PetMutation object of the builder.
 func (puo *PetUpdateOne) Mutation() *PetMutation {
 	return puo.mutation
+}
+
+// ClearAttributes clears all "attributes" edges to the PetAttribute entity.
+func (puo *PetUpdateOne) ClearAttributes() *PetUpdateOne {
+	puo.mutation.ClearAttributes()
+	return puo
+}
+
+// RemoveAttributeIDs removes the "attributes" edge to PetAttribute entities by IDs.
+func (puo *PetUpdateOne) RemoveAttributeIDs(ids ...int) *PetUpdateOne {
+	puo.mutation.RemoveAttributeIDs(ids...)
+	return puo
+}
+
+// RemoveAttributes removes "attributes" edges to PetAttribute entities.
+func (puo *PetUpdateOne) RemoveAttributes(p ...*PetAttribute) *PetUpdateOne {
+	ids := make([]int, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
+	}
+	return puo.RemoveAttributeIDs(ids...)
 }
 
 // ClearOwner clears the "owner" edge to the User entity.
@@ -344,6 +471,60 @@ func (puo *PetUpdateOne) sqlSave(ctx context.Context) (_node *Pet, err error) {
 			Value:  value,
 			Column: pet.FieldCreatedAt,
 		})
+	}
+	if puo.mutation.AttributesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   pet.AttributesTable,
+			Columns: []string{pet.AttributesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: petattribute.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := puo.mutation.RemovedAttributesIDs(); len(nodes) > 0 && !puo.mutation.AttributesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   pet.AttributesTable,
+			Columns: []string{pet.AttributesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: petattribute.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := puo.mutation.AttributesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   pet.AttributesTable,
+			Columns: []string{pet.AttributesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: petattribute.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if puo.mutation.OwnerCleared() {
 		edge := &sqlgraph.EdgeSpec{

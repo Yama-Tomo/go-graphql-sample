@@ -4,10 +4,26 @@ package ent
 
 import "context"
 
+func (pe *Pet) Attributes(ctx context.Context) ([]*PetAttribute, error) {
+	result, err := pe.Edges.AttributesOrErr()
+	if IsNotLoaded(err) {
+		result, err = pe.QueryAttributes().All(ctx)
+	}
+	return result, err
+}
+
 func (pe *Pet) Owner(ctx context.Context) (*User, error) {
 	result, err := pe.Edges.OwnerOrErr()
 	if IsNotLoaded(err) {
 		result, err = pe.QueryOwner().Only(ctx)
+	}
+	return result, MaskNotFound(err)
+}
+
+func (pa *PetAttribute) Pet(ctx context.Context) (*Pet, error) {
+	result, err := pa.Edges.PetOrErr()
+	if IsNotLoaded(err) {
+		result, err = pa.QueryPet().Only(ctx)
 	}
 	return result, MaskNotFound(err)
 }

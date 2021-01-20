@@ -29,17 +29,28 @@ type Pet struct {
 
 // PetEdges holds the relations/edges for other nodes in the graph.
 type PetEdges struct {
+	// Attributes holds the value of the attributes edge.
+	Attributes []*PetAttribute
 	// Owner holds the value of the owner edge.
 	Owner *User
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
+	loadedTypes [2]bool
+}
+
+// AttributesOrErr returns the Attributes value or an error if the edge
+// was not loaded in eager-loading.
+func (e PetEdges) AttributesOrErr() ([]*PetAttribute, error) {
+	if e.loadedTypes[0] {
+		return e.Attributes, nil
+	}
+	return nil, &NotLoadedError{edge: "attributes"}
 }
 
 // OwnerOrErr returns the Owner value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e PetEdges) OwnerOrErr() (*User, error) {
-	if e.loadedTypes[0] {
+	if e.loadedTypes[1] {
 		if e.Owner == nil {
 			// The edge owner was loaded in eager-loading,
 			// but was not found.
@@ -106,6 +117,11 @@ func (pe *Pet) assignValues(columns []string, values []interface{}) error {
 		}
 	}
 	return nil
+}
+
+// QueryAttributes queries the "attributes" edge of the Pet entity.
+func (pe *Pet) QueryAttributes() *PetAttributeQuery {
+	return (&PetClient{config: pe.config}).QueryAttributes(pe)
 }
 
 // QueryOwner queries the "owner" edge of the Pet entity.

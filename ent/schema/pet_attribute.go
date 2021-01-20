@@ -8,25 +8,25 @@ import (
 	"time"
 )
 
-type Pet struct {
+type PetAttribute struct {
 	ent.Schema
 }
 
-func (Pet) Fields() []ent.Field {
+func (PetAttribute) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("name"),
+		field.Time("updated_at"),
 		field.Time("created_at").Default(time.Now),
 	}
 }
 
-func (Pet) Edges() []ent.Edge {
+func (PetAttribute) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.To("attributes", PetAttribute.Type).
-			// relation 名と graphql のフィールド名が違う場合は entgql.Bind() の代わりに MapsTo を使う
-			Annotations(entgql.MapsTo("attrs")),
-		edge.From("owner", User.Type).Ref("pets").
+		edge.From("pet", Pet.Type).
+			// ref に渡す文字列は edge.To に指定している名前と揃える必要がある
+			Ref("attributes").
 			// graphql のフィールド名と同じにする．そうすると collection.go で N+1 対策のコードが生成される
-			Annotations(entgql.MapsTo("owner")).
+			Annotations(entgql.MapsTo("attrs")).
 			Unique(),
 	}
 }

@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sample/ent/pet"
+	"sample/ent/petattribute"
 	"sample/ent/user"
 	"sync"
 	"sync/atomic"
@@ -52,7 +53,7 @@ func (pe *Pet) Node(ctx context.Context) (node *Node, err error) {
 		ID:     pe.ID,
 		Type:   "Pet",
 		Fields: make([]*Field, 2),
-		Edges:  make([]*Edge, 1),
+		Edges:  make([]*Edge, 2),
 	}
 	var buf []byte
 	if buf, err = json.Marshal(pe.Name); err != nil {
@@ -72,11 +73,66 @@ func (pe *Pet) Node(ctx context.Context) (node *Node, err error) {
 		Value: string(buf),
 	}
 	node.Edges[0] = &Edge{
+		Type: "PetAttribute",
+		Name: "attributes",
+	}
+	node.Edges[0].IDs, err = pe.QueryAttributes().
+		Select(petattribute.FieldID).
+		Ints(ctx)
+	if err != nil {
+		return nil, err
+	}
+	node.Edges[1] = &Edge{
 		Type: "User",
 		Name: "owner",
 	}
-	node.Edges[0].IDs, err = pe.QueryOwner().
+	node.Edges[1].IDs, err = pe.QueryOwner().
 		Select(user.FieldID).
+		Ints(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return node, nil
+}
+
+func (pa *PetAttribute) Node(ctx context.Context) (node *Node, err error) {
+	node = &Node{
+		ID:     pa.ID,
+		Type:   "PetAttribute",
+		Fields: make([]*Field, 3),
+		Edges:  make([]*Edge, 1),
+	}
+	var buf []byte
+	if buf, err = json.Marshal(pa.Name); err != nil {
+		return nil, err
+	}
+	node.Fields[0] = &Field{
+		Type:  "string",
+		Name:  "name",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(pa.UpdatedAt); err != nil {
+		return nil, err
+	}
+	node.Fields[1] = &Field{
+		Type:  "time.Time",
+		Name:  "updated_at",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(pa.CreatedAt); err != nil {
+		return nil, err
+	}
+	node.Fields[2] = &Field{
+		Type:  "time.Time",
+		Name:  "created_at",
+		Value: string(buf),
+	}
+	node.Edges[0] = &Edge{
+		Type: "Pet",
+		Name: "pet",
+	}
+	node.Edges[0].IDs, err = pa.QueryPet().
+		Select(pet.FieldID).
 		Ints(ctx)
 	if err != nil {
 		return nil, err
@@ -197,6 +253,15 @@ func (c *Client) noder(ctx context.Context, table string, id int) (Noder, error)
 			return nil, err
 		}
 		return n, nil
+	case petattribute.Table:
+		n, err := c.PetAttribute.Query().
+			Where(petattribute.ID(id)).
+			CollectFields(ctx, "PetAttribute").
+			Only(ctx)
+		if err != nil {
+			return nil, err
+		}
+		return n, nil
 	case user.Table:
 		n, err := c.User.Query().
 			Where(user.ID(id)).
@@ -283,6 +348,19 @@ func (c *Client) noders(ctx context.Context, table string, ids []int) ([]Noder, 
 		nodes, err := c.Pet.Query().
 			Where(pet.IDIn(ids...)).
 			CollectFields(ctx, "Pet").
+			All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, node := range nodes {
+			for _, noder := range idmap[node.ID] {
+				*noder = node
+			}
+		}
+	case petattribute.Table:
+		nodes, err := c.PetAttribute.Query().
+			Where(petattribute.IDIn(ids...)).
+			CollectFields(ctx, "PetAttribute").
 			All(ctx)
 		if err != nil {
 			return nil, err

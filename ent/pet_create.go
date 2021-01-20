@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"sample/ent/pet"
+	"sample/ent/petattribute"
 	"sample/ent/user"
 	"time"
 
@@ -39,6 +40,21 @@ func (pc *PetCreate) SetNillableCreatedAt(t *time.Time) *PetCreate {
 		pc.SetCreatedAt(*t)
 	}
 	return pc
+}
+
+// AddAttributeIDs adds the "attributes" edge to the PetAttribute entity by IDs.
+func (pc *PetCreate) AddAttributeIDs(ids ...int) *PetCreate {
+	pc.mutation.AddAttributeIDs(ids...)
+	return pc
+}
+
+// AddAttributes adds the "attributes" edges to the PetAttribute entity.
+func (pc *PetCreate) AddAttributes(p ...*PetAttribute) *PetCreate {
+	ids := make([]int, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
+	}
+	return pc.AddAttributeIDs(ids...)
 }
 
 // SetOwnerID sets the "owner" edge to the User entity by ID.
@@ -168,6 +184,25 @@ func (pc *PetCreate) createSpec() (*Pet, *sqlgraph.CreateSpec) {
 			Column: pet.FieldCreatedAt,
 		})
 		_node.CreatedAt = value
+	}
+	if nodes := pc.mutation.AttributesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   pet.AttributesTable,
+			Columns: []string{pet.AttributesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: petattribute.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := pc.mutation.OwnerIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

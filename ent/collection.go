@@ -19,6 +19,10 @@ func (pe *PetQuery) CollectFields(ctx context.Context, satisfies ...string) *Pet
 func (pe *PetQuery) collectField(ctx *graphql.OperationContext, field graphql.CollectedField, satisfies ...string) *PetQuery {
 	for _, field := range graphql.CollectFields(ctx, field.Selections, satisfies) {
 		switch field.Name {
+		case "attrs":
+			pe = pe.WithAttributes(func(query *PetAttributeQuery) {
+				query.collectField(ctx, field)
+			})
 		case "owner":
 			pe = pe.WithOwner(func(query *UserQuery) {
 				query.collectField(ctx, field)
@@ -26,6 +30,26 @@ func (pe *PetQuery) collectField(ctx *graphql.OperationContext, field graphql.Co
 		}
 	}
 	return pe
+}
+
+// CollectFields tells the query-builder to eagerly load connected nodes by resolver context.
+func (pa *PetAttributeQuery) CollectFields(ctx context.Context, satisfies ...string) *PetAttributeQuery {
+	if fc := graphql.GetFieldContext(ctx); fc != nil {
+		pa = pa.collectField(graphql.GetOperationContext(ctx), fc.Field, satisfies...)
+	}
+	return pa
+}
+
+func (pa *PetAttributeQuery) collectField(ctx *graphql.OperationContext, field graphql.CollectedField, satisfies ...string) *PetAttributeQuery {
+	for _, field := range graphql.CollectFields(ctx, field.Selections, satisfies) {
+		switch field.Name {
+		case "attrs":
+			pa = pa.WithPet(func(query *PetQuery) {
+				query.collectField(ctx, field)
+			})
+		}
+	}
+	return pa
 }
 
 // CollectFields tells the query-builder to eagerly load connected nodes by resolver context.

@@ -4,6 +4,7 @@ package ent
 
 import (
 	"sample/ent/pet"
+	"sample/ent/petattribute"
 	"sample/ent/schema"
 	"sample/ent/user"
 	"time"
@@ -19,6 +20,12 @@ func init() {
 	petDescCreatedAt := petFields[1].Descriptor()
 	// pet.DefaultCreatedAt holds the default value on creation for the created_at field.
 	pet.DefaultCreatedAt = petDescCreatedAt.Default.(func() time.Time)
+	petattributeFields := schema.PetAttribute{}.Fields()
+	_ = petattributeFields
+	// petattributeDescCreatedAt is the schema descriptor for created_at field.
+	petattributeDescCreatedAt := petattributeFields[2].Descriptor()
+	// petattribute.DefaultCreatedAt holds the default value on creation for the created_at field.
+	petattribute.DefaultCreatedAt = petattributeDescCreatedAt.Default.(func() time.Time)
 	userFields := schema.User{}.Fields()
 	_ = userFields
 	// userDescCreatedAt is the schema descriptor for created_at field.

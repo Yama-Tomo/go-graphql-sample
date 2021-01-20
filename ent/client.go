@@ -10,6 +10,7 @@ import (
 	"sample/ent/migrate"
 
 	"sample/ent/pet"
+	"sample/ent/petattribute"
 	"sample/ent/user"
 
 	"github.com/facebook/ent/dialect"
@@ -24,6 +25,8 @@ type Client struct {
 	Schema *migrate.Schema
 	// Pet is the client for interacting with the Pet builders.
 	Pet *PetClient
+	// PetAttribute is the client for interacting with the PetAttribute builders.
+	PetAttribute *PetAttributeClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
 	// additional fields for node api
@@ -42,6 +45,7 @@ func NewClient(opts ...Option) *Client {
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
 	c.Pet = NewPetClient(c.config)
+	c.PetAttribute = NewPetAttributeClient(c.config)
 	c.User = NewUserClient(c.config)
 }
 
@@ -73,10 +77,11 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	}
 	cfg := config{driver: tx, log: c.log, debug: c.debug, hooks: c.hooks}
 	return &Tx{
-		ctx:    ctx,
-		config: cfg,
-		Pet:    NewPetClient(cfg),
-		User:   NewUserClient(cfg),
+		ctx:          ctx,
+		config:       cfg,
+		Pet:          NewPetClient(cfg),
+		PetAttribute: NewPetAttributeClient(cfg),
+		User:         NewUserClient(cfg),
 	}, nil
 }
 
@@ -91,9 +96,10 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	}
 	cfg := config{driver: &txDriver{tx: tx, drv: c.driver}, log: c.log, debug: c.debug, hooks: c.hooks}
 	return &Tx{
-		config: cfg,
-		Pet:    NewPetClient(cfg),
-		User:   NewUserClient(cfg),
+		config:       cfg,
+		Pet:          NewPetClient(cfg),
+		PetAttribute: NewPetAttributeClient(cfg),
+		User:         NewUserClient(cfg),
 	}, nil
 }
 
@@ -123,6 +129,7 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	c.Pet.Use(hooks...)
+	c.PetAttribute.Use(hooks...)
 	c.User.Use(hooks...)
 }
 
@@ -209,6 +216,22 @@ func (c *PetClient) GetX(ctx context.Context, id int) *Pet {
 	return obj
 }
 
+// QueryAttributes queries the attributes edge of a Pet.
+func (c *PetClient) QueryAttributes(pe *Pet) *PetAttributeQuery {
+	query := &PetAttributeQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := pe.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(pet.Table, pet.FieldID, id),
+			sqlgraph.To(petattribute.Table, petattribute.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, pet.AttributesTable, pet.AttributesColumn),
+		)
+		fromV = sqlgraph.Neighbors(pe.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // QueryOwner queries the owner edge of a Pet.
 func (c *PetClient) QueryOwner(pe *Pet) *UserQuery {
 	query := &UserQuery{config: c.config}
@@ -228,6 +251,110 @@ func (c *PetClient) QueryOwner(pe *Pet) *UserQuery {
 // Hooks returns the client hooks.
 func (c *PetClient) Hooks() []Hook {
 	return c.hooks.Pet
+}
+
+// PetAttributeClient is a client for the PetAttribute schema.
+type PetAttributeClient struct {
+	config
+}
+
+// NewPetAttributeClient returns a client for the PetAttribute from the given config.
+func NewPetAttributeClient(c config) *PetAttributeClient {
+	return &PetAttributeClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `petattribute.Hooks(f(g(h())))`.
+func (c *PetAttributeClient) Use(hooks ...Hook) {
+	c.hooks.PetAttribute = append(c.hooks.PetAttribute, hooks...)
+}
+
+// Create returns a create builder for PetAttribute.
+func (c *PetAttributeClient) Create() *PetAttributeCreate {
+	mutation := newPetAttributeMutation(c.config, OpCreate)
+	return &PetAttributeCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of PetAttribute entities.
+func (c *PetAttributeClient) CreateBulk(builders ...*PetAttributeCreate) *PetAttributeCreateBulk {
+	return &PetAttributeCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for PetAttribute.
+func (c *PetAttributeClient) Update() *PetAttributeUpdate {
+	mutation := newPetAttributeMutation(c.config, OpUpdate)
+	return &PetAttributeUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *PetAttributeClient) UpdateOne(pa *PetAttribute) *PetAttributeUpdateOne {
+	mutation := newPetAttributeMutation(c.config, OpUpdateOne, withPetAttribute(pa))
+	return &PetAttributeUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *PetAttributeClient) UpdateOneID(id int) *PetAttributeUpdateOne {
+	mutation := newPetAttributeMutation(c.config, OpUpdateOne, withPetAttributeID(id))
+	return &PetAttributeUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for PetAttribute.
+func (c *PetAttributeClient) Delete() *PetAttributeDelete {
+	mutation := newPetAttributeMutation(c.config, OpDelete)
+	return &PetAttributeDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a delete builder for the given entity.
+func (c *PetAttributeClient) DeleteOne(pa *PetAttribute) *PetAttributeDeleteOne {
+	return c.DeleteOneID(pa.ID)
+}
+
+// DeleteOneID returns a delete builder for the given id.
+func (c *PetAttributeClient) DeleteOneID(id int) *PetAttributeDeleteOne {
+	builder := c.Delete().Where(petattribute.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &PetAttributeDeleteOne{builder}
+}
+
+// Query returns a query builder for PetAttribute.
+func (c *PetAttributeClient) Query() *PetAttributeQuery {
+	return &PetAttributeQuery{config: c.config}
+}
+
+// Get returns a PetAttribute entity by its id.
+func (c *PetAttributeClient) Get(ctx context.Context, id int) (*PetAttribute, error) {
+	return c.Query().Where(petattribute.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *PetAttributeClient) GetX(ctx context.Context, id int) *PetAttribute {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryPet queries the pet edge of a PetAttribute.
+func (c *PetAttributeClient) QueryPet(pa *PetAttribute) *PetQuery {
+	query := &PetQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := pa.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(petattribute.Table, petattribute.FieldID, id),
+			sqlgraph.To(pet.Table, pet.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, petattribute.PetTable, petattribute.PetColumn),
+		)
+		fromV = sqlgraph.Neighbors(pa.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *PetAttributeClient) Hooks() []Hook {
+	return c.hooks.PetAttribute
 }
 
 // UserClient is a client for the User schema.
