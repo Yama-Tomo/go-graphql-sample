@@ -294,6 +294,34 @@ func CreatedAtLTE(v time.Time) predicate.Pet {
 	})
 }
 
+// HasAttributes applies the HasEdge predicate on the "attributes" edge.
+func HasAttributes() predicate.Pet {
+	return predicate.Pet(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.To(AttributesTable, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, AttributesTable, AttributesColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasAttributesWith applies the HasEdge predicate on the "attributes" edge with a given conditions (other predicates).
+func HasAttributesWith(preds ...predicate.PetAttribute) predicate.Pet {
+	return predicate.Pet(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.To(AttributesInverseTable, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, AttributesTable, AttributesColumn),
+		)
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // HasOwner applies the HasEdge predicate on the "owner" edge.
 func HasOwner() predicate.Pet {
 	return predicate.Pet(func(s *sql.Selector) {

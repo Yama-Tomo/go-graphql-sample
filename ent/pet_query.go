@@ -4,10 +4,12 @@ package ent
 
 import (
 	"context"
+	"database/sql/driver"
 	"errors"
 	"fmt"
 	"math"
 	"sample/ent/pet"
+	"sample/ent/petattribute"
 	"sample/ent/predicate"
 	"sample/ent/user"
 
@@ -25,8 +27,9 @@ type PetQuery struct {
 	fields     []string
 	predicates []predicate.Pet
 	// eager-loading edges.
-	withOwner *UserQuery
-	withFKs   bool
+	withAttributes *PetAttributeQuery
+	withOwner      *UserQuery
+	withFKs        bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -54,6 +57,28 @@ func (pq *PetQuery) Offset(offset int) *PetQuery {
 func (pq *PetQuery) Order(o ...OrderFunc) *PetQuery {
 	pq.order = append(pq.order, o...)
 	return pq
+}
+
+// QueryAttributes chains the current query on the "attributes" edge.
+func (pq *PetQuery) QueryAttributes() *PetAttributeQuery {
+	query := &PetAttributeQuery{config: pq.config}
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := pq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := pq.sqlQuery()
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(pet.Table, pet.FieldID, selector),
+			sqlgraph.To(petattribute.Table, petattribute.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, pet.AttributesTable, pet.AttributesColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(pq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
 }
 
 // QueryOwner chains the current query on the "owner" edge.
@@ -254,16 +279,28 @@ func (pq *PetQuery) Clone() *PetQuery {
 		return nil
 	}
 	return &PetQuery{
-		config:     pq.config,
-		limit:      pq.limit,
-		offset:     pq.offset,
-		order:      append([]OrderFunc{}, pq.order...),
-		predicates: append([]predicate.Pet{}, pq.predicates...),
-		withOwner:  pq.withOwner.Clone(),
+		config:         pq.config,
+		limit:          pq.limit,
+		offset:         pq.offset,
+		order:          append([]OrderFunc{}, pq.order...),
+		predicates:     append([]predicate.Pet{}, pq.predicates...),
+		withAttributes: pq.withAttributes.Clone(),
+		withOwner:      pq.withOwner.Clone(),
 		// clone intermediate query.
 		sql:  pq.sql.Clone(),
 		path: pq.path,
 	}
+}
+
+// WithAttributes tells the query-builder to eager-load the nodes that are connected to
+// the "attributes" edge. The optional arguments are used to configure the query builder of the edge.
+func (pq *PetQuery) WithAttributes(opts ...func(*PetAttributeQuery)) *PetQuery {
+	query := &PetAttributeQuery{config: pq.config}
+	for _, opt := range opts {
+		opt(query)
+	}
+	pq.withAttributes = query
+	return pq
 }
 
 // WithOwner tells the query-builder to eager-load the nodes that are connected to
@@ -343,7 +380,8 @@ func (pq *PetQuery) sqlAll(ctx context.Context) ([]*Pet, error) {
 		nodes       = []*Pet{}
 		withFKs     = pq.withFKs
 		_spec       = pq.querySpec()
-		loadedTypes = [1]bool{
+		loadedTypes = [2]bool{
+			pq.withAttributes != nil,
 			pq.withOwner != nil,
 		}
 	)
@@ -371,6 +409,35 @@ func (pq *PetQuery) sqlAll(ctx context.Context) ([]*Pet, error) {
 	}
 	if len(nodes) == 0 {
 		return nodes, nil
+	}
+
+	if query := pq.withAttributes; query != nil {
+		fks := make([]driver.Value, 0, len(nodes))
+		nodeids := make(map[int]*Pet)
+		for i := range nodes {
+			fks = append(fks, nodes[i].ID)
+			nodeids[nodes[i].ID] = nodes[i]
+			nodes[i].Edges.Attributes = []*PetAttribute{}
+		}
+		query.withFKs = true
+		query.Where(predicate.PetAttribute(func(s *sql.Selector) {
+			s.Where(sql.InValues(pet.AttributesColumn, fks...))
+		}))
+		neighbors, err := query.All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, n := range neighbors {
+			fk := n.pet_attributes
+			if fk == nil {
+				return nil, fmt.Errorf(`foreign-key "pet_attributes" is nil for node %v`, n.ID)
+			}
+			node, ok := nodeids[*fk]
+			if !ok {
+				return nil, fmt.Errorf(`unexpected foreign-key "pet_attributes" returned %v for node %v`, *fk, n.ID)
+			}
+			node.Edges.Attributes = append(node.Edges.Attributes, n)
+		}
 	}
 
 	if query := pq.withOwner; query != nil {

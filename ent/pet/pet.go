@@ -16,11 +16,20 @@ const (
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "created_at"
 
+	// EdgeAttributes holds the string denoting the attributes edge name in mutations.
+	EdgeAttributes = "attributes"
 	// EdgeOwner holds the string denoting the owner edge name in mutations.
 	EdgeOwner = "owner"
 
 	// Table holds the table name of the pet in the database.
 	Table = "pets"
+	// AttributesTable is the table the holds the attributes relation/edge.
+	AttributesTable = "pet_attributes"
+	// AttributesInverseTable is the table name for the PetAttribute entity.
+	// It exists in this package in order to avoid circular dependency with the "petattribute" package.
+	AttributesInverseTable = "pet_attributes"
+	// AttributesColumn is the table column denoting the attributes relation/edge.
+	AttributesColumn = "pet_attributes"
 	// OwnerTable is the table the holds the owner relation/edge.
 	OwnerTable = "pets"
 	// OwnerInverseTable is the table name for the User entity.

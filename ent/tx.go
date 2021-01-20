@@ -14,6 +14,8 @@ type Tx struct {
 	config
 	// Pet is the client for interacting with the Pet builders.
 	Pet *PetClient
+	// PetAttribute is the client for interacting with the PetAttribute builders.
+	PetAttribute *PetAttributeClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
 
@@ -152,6 +154,7 @@ func (tx *Tx) Client() *Client {
 
 func (tx *Tx) init() {
 	tx.Pet = NewPetClient(tx.config)
+	tx.PetAttribute = NewPetAttributeClient(tx.config)
 	tx.User = NewUserClient(tx.config)
 }
 
