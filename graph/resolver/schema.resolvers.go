@@ -14,6 +14,10 @@ func (r *petResolver) NickName(ctx context.Context, obj *ent.Pet) (*string, erro
 	return &obj.Name, nil
 }
 
+func (r *petResolver) Attrs(ctx context.Context, obj *ent.Pet) ([]*ent.PetAttribute, error) {
+	return obj.Edges.Attributes, nil
+}
+
 func (r *queryResolver) User(ctx context.Context, id *int) (*ent.User, error) {
 	if id == nil {
 		return nil, errors.New("required id")

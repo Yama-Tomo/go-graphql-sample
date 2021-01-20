@@ -15,4 +15,10 @@ type Pet {
   id: ID
   nick_name: String
   owner: User
+  attrs: [PetAttribute]!
+}
+
+type PetAttribute {
+  id: ID
+  name: String
 }
